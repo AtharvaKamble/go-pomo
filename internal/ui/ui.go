@@ -1,63 +1,100 @@
 package ui
 
 import (
-	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"pomodoro/internal/timer"
+	"time"
 )
 
-func SetupPages(app *tview.Application, currentPage *string) *tview.Pages {
+var (
+	buttonsModal     *tview.Modal
+	pomodoroDuration time.Duration
+)
+
+func SetupPages(app *tview.Application, currentPage *string, timer *timer.Timer, delta chan time.Duration) *tview.Pages {
 
 	pages := tview.NewPages()
 
-	// Page 1 - landing page
-	pages.AddPage("Landing",
+	modal1 := tview.NewModal().
+		SetBackgroundColor(tcell.Color148).
+		SetTextColor(tcell.Color16).
+		SetText("Select a duration for your pomodoro").
+		AddButtons([]string{"15m", "25m", "45m"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 
-		tview.NewFlex().SetDirection(tview.FlexRow).AddItem(
-			tview.NewModal().
-				SetBackgroundColor(tcell.Color148).
-				SetTextColor(tcell.Color16).
-				SetText(fmt.Sprintf("Select a duration for your pomodoro")).
-				AddButtons([]string{"15m", "25m", "45m"}).
-				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-					if buttonLabel == "15m" {
-						pages.SwitchToPage("Timer")
-						*currentPage = "Timer"
-					} else if buttonLabel == "25m" {
-						pages.SwitchToPage("Timer")
-						*currentPage = "Timer"
-					} else if buttonLabel == "45m" {
-						pages.SwitchToPage("Timer")
-						*currentPage = "Timer"
-					} else {
-						app.Stop()
-					}
-					fmt.Println(*currentPage)
-				}), 0, 3, true),
-		false,
-		true)
+			if buttonLabel == "15m" {
+				pomodoroDuration = 15 * 60
+			} else if buttonLabel == "25m" {
+				pomodoroDuration = 25 * 60
+			} else if buttonLabel == "45m" {
+				pomodoroDuration = 45 * 60
+
+			} else {
+				app.Stop()
+			}
+
+			pages.SwitchToPage("Timer")
+			*currentPage = "Timer"
+			//fmt.Println(pomodoroDuration)
+			go timer.Tick(pomodoroDuration*time.Second, delta)
+
+			go updateUI(delta, app, buttonsModal, pomodoroDuration)
+		})
+
+	//modal2 := tview.NewModal().
+	//	SetTitle("Sup bro").
+	//	SetBorder(true)
+
+	page1 := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(tview.NewBox(), 0, 1, false).
+		AddItem(tview.NewFlex().
+			AddItem(tview.NewBox(), 0, 1, false).
+			AddItem(modal1, 0, 5, true).
+			AddItem(tview.NewBox(), 0, 1, false), 0, 2, true).
+		AddItem(tview.NewBox(), 0, 1, false).
+		AddItem(tview.NewFlex().
+			AddItem(tview.NewBox(), 0, 1, false).
+			AddItem(tview.NewBox(), 0, 2, true).
+			AddItem(tview.NewBox(), 0, 1, false), 0, 2, true).
+		AddItem(tview.NewBox(), 0, 1, false)
 
 	// Page 2 - timer page
-	pages.AddPage("Timer",
+	buttonsModal = tview.NewModal().
+		SetBackgroundColor(tcell.Color148).
+		SetTextColor(tcell.Color16).
+		AddButtons([]string{"Reset", "Quit"}).
+		SetText("Starting pomodoro session, get ready...").
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			if buttonLabel == "Reset" {
+				pages.SwitchToPage("Landing")
+				*currentPage = "Landing"
+			} else if buttonLabel == "Quit" {
+				app.Stop()
+			} else {
+				app.Stop()
+			}
+		})
 
-		tview.NewModal().
-			SetBackgroundColor(tcell.Color148).
-			SetTextColor(tcell.Color16).
-			SetText(fmt.Sprintf("This is the timer page")).
-			AddButtons([]string{"Back", "Quit"}).
-			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-				if buttonLabel == "Back" {
-					pages.SwitchToPage("Landing")
-					*currentPage = "Landing"
-					fmt.Println(*currentPage)
-				} else if buttonLabel == "Quit" {
-					app.Stop()
-				} else {
-					app.Stop()
-				}
-			}),
-		false,
-		false)
+	//timerModal := tview.NewBox().SetBorder(true).SetTitle("Timer box")
+
+	page2 := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(buttonsModal, 0, 2, false).AddItem(buttonsModal, 0, 2, true)
+
+	pages.AddPage("Landing", page1, true, true)
+	pages.AddPage("Timer", page2, false, false)
 
 	return pages
+}
+
+func updateUI(delta chan time.Duration, app *tview.Application, buttonsModal *tview.Modal, pomodoroDuration time.Duration) {
+
+	for t := range delta {
+		elapsedTime := pomodoroDuration*time.Second - t.Truncate(time.Second)
+
+		app.QueueUpdateDraw(func() {
+			buttonsModal.SetText(elapsedTime.String())
+		})
+	}
+
 }

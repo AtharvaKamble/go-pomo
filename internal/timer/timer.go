@@ -15,6 +15,7 @@ var (
 )
 
 // GetTimerInstance creates a single new instance utilizing the Singleton pattern
+// Singleton pattern
 func GetTimerInstance() *Timer {
 	// Do only run once on every sync.Once instance
 	cacheOnce.Do(func() {

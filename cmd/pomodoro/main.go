@@ -2,14 +2,14 @@ package main
 
 import (
 	"github.com/rivo/tview"
+	"os"
+	"pomodoro/internal/sound"
 	"pomodoro/internal/timer"
 	"pomodoro/internal/ui"
-	"time"
 )
 
 var (
 	app         *tview.Application
-	textView    *tview.TextView
 	currentPage string
 )
 
@@ -17,26 +17,19 @@ const pageCount = 2
 
 func main() {
 
-	timer := timer.GetTimerInstance()
+	timerInstance := timer.GetTimerInstance()
 
-	delta := make(chan time.Duration)
+	path, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 
-	//total := 1500 * time.Second
+	audioPlayer := sound.GetPlayerInstance(path + "/../../assets/wav/key.wav")
 
 	app = tview.NewApplication()
-	// box := tview.NewBox().SetBorder(true).SetTitle("GoPomo")
-
-	// there must be global context to store which page was selected
 
 	currentPage = "Landing"
-	pages := ui.SetupPages(app, &currentPage, timer, delta)
-
-	textView = tview.NewTextView().
-		SetDynamicColors(true).
-		SetRegions(true).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
+	pages := ui.SetupPages(app, &currentPage, timerInstance, audioPlayer)
 
 	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
 		panic(err)

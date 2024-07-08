@@ -3,6 +3,7 @@ package ui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"pomodoro/internal/sound"
 	"pomodoro/internal/timer"
 	"time"
 )
@@ -12,7 +13,8 @@ var (
 	pomodoroDuration time.Duration
 )
 
-func SetupPages(app *tview.Application, currentPage *string, timer *timer.Timer, delta chan time.Duration) *tview.Pages {
+func SetupPages(app *tview.Application, currentPage *string, timer *timer.Timer, ap *sound.AudioPlayer) *tview.Pages {
+	delta := make(chan time.Duration)
 
 	pages := tview.NewPages()
 
@@ -29,7 +31,6 @@ func SetupPages(app *tview.Application, currentPage *string, timer *timer.Timer,
 				pomodoroDuration = 25 * 60
 			} else if buttonLabel == "45m" {
 				pomodoroDuration = 45 * 60
-
 			} else {
 				app.Stop()
 			}
@@ -39,12 +40,8 @@ func SetupPages(app *tview.Application, currentPage *string, timer *timer.Timer,
 			//fmt.Println(pomodoroDuration)
 			go timer.Tick(pomodoroDuration*time.Second, delta)
 
-			go updateUI(delta, app, buttonsModal, pomodoroDuration)
+			go updateUI(delta, app, buttonsModal, pomodoroDuration, ap)
 		})
-
-	//modal2 := tview.NewModal().
-	//	SetTitle("Sup bro").
-	//	SetBorder(true)
 
 	page1 := tview.NewFlex().
 		SetDirection(tview.FlexRow).
@@ -87,10 +84,11 @@ func SetupPages(app *tview.Application, currentPage *string, timer *timer.Timer,
 	return pages
 }
 
-func updateUI(delta chan time.Duration, app *tview.Application, buttonsModal *tview.Modal, pomodoroDuration time.Duration) {
+func updateUI(delta chan time.Duration, app *tview.Application, buttonsModal *tview.Modal, pomodoroDuration time.Duration, ap *sound.AudioPlayer) {
 
 	for t := range delta {
 		elapsedTime := pomodoroDuration*time.Second - t.Truncate(time.Second)
+		ap.PlaySound()
 
 		app.QueueUpdateDraw(func() {
 			buttonsModal.SetText(elapsedTime.String())

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/rivo/tview"
 	"os"
 	"pomodoro/internal/sound"
@@ -11,20 +12,36 @@ import (
 var (
 	app         *tview.Application
 	currentPage string
+	basePath    string
 )
 
-const pageCount = 2
+const (
+	pageCount      = 2
+	KEY_SOUND_PATH = "/assets/wav/key.wav"
+)
+
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 
 	timerInstance := timer.GetTimerInstance()
 
-	path, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
+	homePath, err := os.UserHomeDir()
+	check(err)
 
-	audioPlayer := sound.GetPlayerInstance(path + "/../../assets/wav/key.wav")
+	basePath = fmt.Sprintf("%s/.config/go-pomo", homePath)
+    _, err = os.ReadDir(basePath)
+
+    if err != nil {
+        fmt.Println("Please initialize go-pomo using the install.sh script first.")
+        return
+    }
+
+	audioPlayer := sound.GetPlayerInstance(basePath + KEY_SOUND_PATH)
 
 	app = tview.NewApplication()
 

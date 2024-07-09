@@ -7,6 +7,10 @@ your pomodoro in the cli
 
 A Pomodoro app in the terminal! It's just as simple as launching your favorite terminal emulator and launching the app. Feel free to choose from preset times OR enter a time period for yourself. 
 
+#### Why Go?
+
+Because of how freaking cool Go is, that's why.
+
 ___
 #### How do I install?
 
